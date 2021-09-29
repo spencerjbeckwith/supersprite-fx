@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "ES2020",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "sourceMap": false,
+        "outDir": "build",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true,
+    },
+    "include": [ "src/**/*", ],
+    "exclude": [ "build", "../node_modules", ],
+}
