@@ -4,7 +4,7 @@ import { terser } from 'rollup-plugin-terser';
 export default {
     input: 'src/main.ts',
     output: {
-        file: 'build/main.js',
+        file: 'build/main.min.js',
     },
     plugins: [
         typescript({
