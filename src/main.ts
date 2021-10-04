@@ -1,7 +1,9 @@
 import { init, supersprite, shader, draw, DrawTextOptions } from 'supersprite';
 import spr from './atlas.js';
 
-import source from './shaders/source.js';
+import vertexSource from './shaders/vertex.glsl';
+import fragmentSource from './shaders/fragment.glsl';
+import { subdivisions } from './subdivide.js';
 
 declare module 'supersprite' {
     export interface MainShaderUniforms {
@@ -9,6 +11,9 @@ declare module 'supersprite' {
         paletteIndex: WebGLUniformLocation;
         monochrome: WebGLUniformLocation;
         monochromeMultiplier: WebGLUniformLocation;
+        useShockwave: WebGLUniformLocation;
+        shockwave: WebGLUniformLocation;
+        surfaceSize: WebGLUniformLocation;
     }
 }
 
@@ -26,8 +31,8 @@ init({
     },
     mainShaderOptions: {
         source: {
-            vertex: source.vertex,
-            fragment: source.fragment,
+            vertex: vertexSource,
+            fragment: fragmentSource,
         },
         attributes: {
             position: 'a_position',
@@ -50,6 +55,18 @@ shader.uniforms.paletteSampler = gl.getUniformLocation(shader.program, 'u_palett
 
 shader.uniforms.monochrome = gl.getUniformLocation(shader.program, 'u_monochrome');
 shader.uniforms.monochromeMultiplier = gl.getUniformLocation(shader.program, 'u_monochrome_multiplier');
+
+shader.uniforms.useShockwave = gl.getUniformLocation(shader.program, 'u_use_shockwave');
+shader.uniforms.shockwave = gl.getUniformLocation(shader.program, 'u_shockwave');
+shader.uniforms.surfaceSize = gl.getUniformLocation(shader.program, 'u_surfaceSize');
+
+// Each shockwave is two vec3's of the following format:
+//  (epicenter x, epicenter y, intensity) and (max radius, current time, maximum time)
+const shockwave = [
+    112, 80, 0.05, 25, 0, 30,
+    192, 80, 0.08, 25, 0, 20,
+    272, 80, 0.03, 25, 0, 60
+];
 
 Promise.all([
     supersprite.loadTexture('build/atlas.png',{
@@ -106,6 +123,39 @@ function main() {
     draw.spriteSpeed(spr.guy, 0.2, 272, 28);
     gl.uniform1i(shader.uniforms.monochrome, 0);
 
-    supersprite.endRender();
+    // Shockwave
+    //  Note the shockwave isn't an effect on these drawings, but instead affects the game texture
+    draw.text(8,56,'Shockwaves:');
+    draw.sprite(spr.bricks, 0, 80, 48);
+    draw.sprite(spr.bricks, 0, 112, 48);
+    draw.sprite(spr.bricks, 0, 80, 80);
+    draw.sprite(spr.bricks, 0, 112, 80);
+
+    draw.sprite(spr.grass, 0, 160, 48);
+    draw.sprite(spr.grass, 0, 192, 48);
+    draw.sprite(spr.grass, 0, 160, 80);
+    draw.sprite(spr.grass, 0, 192, 80);
+
+    draw.sprite(spr.stone, 0, 240, 48);
+    draw.sprite(spr.stone, 0, 272, 48);
+    draw.sprite(spr.stone, 0, 240, 80);
+    draw.sprite(spr.stone, 0, 272, 80);
+
+    // Shockwave processing - controls our uniform
+    for (let i = 0; i < shockwave.length; i += 6) {
+        shockwave[i+4]++;
+        if (shockwave[i+4] > shockwave[i+5]) {
+            // Reset time
+            shockwave[i+4] = -30;
+        }
+    }
+
+    gl.uniform3fv(shader.uniforms.shockwave, shockwave);
+    gl.uniform2f(shader.uniforms.surfaceSize, supersprite.viewWidth, supersprite.viewHeight);
+
+    gl.uniform1i(shader.uniforms.useShockwave, 1);
+    supersprite.endRender(null, subdivisions.screen, subdivisions.screen);
+    gl.uniform1i(shader.uniforms.useShockwave, 0);
+
     requestAnimationFrame(main);
 }
